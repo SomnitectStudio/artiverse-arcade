@@ -18,6 +18,14 @@
     }
   </style>
 </head>
+  <script>
+  window.addEventListener("keydown", function(e) {
+    // Prevent space bar scrolling
+    if (e.code === "Space" && e.target === document.body) {
+      e.preventDefault();
+    }
+  });
+</script>
 <body>
 <canvas id="gameCanvas" width="600" height="600"></canvas>
 
