@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Brooks of Yolk</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: linear-gradient(#87ceeb 60%, #7ec850 40%);
+      border: 2px solid #333;
+    }
+  </style>
+</head>
+<body>
+<audio id="bgMusic" autoplay loop>
+  <source src="And Then He Breathes Fire  BrooksOfYork.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const SKY_LIMIT_Y = 300;
+
+const brooks = {
+  x: 100,
+  y: 400,
+  width: 30,
+  height: 60,
+  speed: 4,
+  score: 0,
+  dir: 'right' // direction: left or right
+};
+
+let eggs = Array.from({ length: 6 }, spawnEgg);
+
+function spawnEgg() {
+  return {
+    x: Math.random() * 750,
+    y: 360 + Math.random() * 200,
+    radius: 10,
+    collected: false
+  };
+}
+
+const clouds = Array.from({ length: 3 }, () => ({
+  x: Math.random() * 800,
+  y: Math.random() * 300,
+  speed: 0.5 + Math.random()
+}));
+
+let ducks = [];
+
+function spawnDuck() {
+  ducks.push({
+    x: Math.random() * 750,
+    y: 360 + Math.random() * 200,
+    width: 30,
+    height: 30,
+    dx: (Math.random() - 0.5) * 2,
+    dy: (Math.random() - 0.5) * 2,
+    speed: 3.0
+  });
+}
+spawnDuck();
+setInterval(() => {
+  if (!gameOver) spawnDuck();
+}, 8000);
+
+let timeLeft = 180;
+let gameOver = false;
+
+setInterval(() => {
+  if (!gameOver) {
+    timeLeft--;
+    if (timeLeft <= 0) gameOver = true;
+  }
+}, 1000);
+
+const keys = {};
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function update() {
+  if (gameOver) return;
+
+  if (keys['ArrowUp']) brooks.y -= brooks.speed;
+  if (keys['ArrowDown']) brooks.y += brooks.speed;
+  if (keys['ArrowLeft']) {
+    brooks.x -= brooks.speed;
+    brooks.dir = 'left';
+  }
+  if (keys['ArrowRight']) {
+    brooks.x += brooks.speed;
+    brooks.dir = 'right';
+  }
+
+  // Clamp movement
+  brooks.x = Math.max(0, Math.min(canvas.width - brooks.width, brooks.x));
+  brooks.y = Math.max(SKY_LIMIT_Y - brooks.height, Math.min(canvas.height - brooks.height, brooks.y));
+
+  for (let i = 0; i < eggs.length; i++) {
+    const egg = eggs[i];
+    if (!egg.collected) {
+      const dx = brooks.x + brooks.width / 2 - egg.x;
+      const dy = brooks.y + brooks.height / 2 - egg.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < egg.radius + brooks.width / 2) {
+        egg.collected = true;
+        brooks.score++;
+        eggs[i] = spawnEgg();
+      }
+    }
+  }
+
+  // Move clouds
+  for (const cloud of clouds) {
+    cloud.x += cloud.speed;
+    if (cloud.x > 820) cloud.x = -60;
+  }
+
+  for (const duck of ducks) {
+    if (Math.random() < 0.02) duck.dx = (Math.random() - 0.5) * 2;
+    if (Math.random() < 0.02) duck.dy = (Math.random() - 0.5) * 2;
+
+    duck.x += duck.dx * duck.speed;
+    duck.y += duck.dy * duck.speed;
+
+    duck.x = Math.max(0, Math.min(canvas.width - duck.width, duck.x));
+    duck.y = Math.max(360, Math.min(canvas.height - duck.height, duck.y));
+
+    const dx = brooks.x + brooks.width / 2 - (duck.x + duck.width / 2);
+    const dy = brooks.y + brooks.height / 2 - (duck.y + duck.height / 2);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 30) gameOver = true;
+  }
+}
+
+function drawBrooks() {
+  ctx.fillStyle = "#800080";
+  ctx.fillRect(brooks.x, brooks.y + 20, brooks.width, brooks.height - 20);
+  ctx.fillStyle = "#f5deb3";
+  ctx.fillRect(brooks.x, brooks.y, brooks.width, 20);
+
+  // Hair
+  ctx.beginPath();
+  ctx.fillStyle = "gold";
+  ctx.arc(brooks.x + brooks.width / 2, brooks.y - 5, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Glasses
+  ctx.fillStyle = "white";
+  ctx.fillRect(brooks.x + 4, brooks.y + 6, 8, 8);
+  ctx.fillRect(brooks.x + 18, brooks.y + 6, 8, 8);
+  ctx.fillRect(brooks.x + 12, brooks.y + 9, 4, 2);
+
+  // Pupils
+  ctx.fillStyle = "black";
+  const offset = brooks.dir === 'right' ? 2 : -2;
+  ctx.beginPath();
+  ctx.arc(brooks.x + 8 + offset, brooks.y + 10, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(brooks.x + 22 + offset, brooks.y + 10, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Shirt dots
+  ctx.fillStyle = "white";
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.arc(brooks.x + 6 + i * 6, brooks.y + 40, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawEggs() {
+  for (const egg of eggs) {
+    ctx.beginPath();
+    ctx.fillStyle = "white";
+    ctx.arc(egg.x, egg.y, egg.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function drawClouds() {
+  for (const cloud of clouds) {
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.ellipse(cloud.x, cloud.y, 30, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cloud.x + 20, cloud.y + 5, 25, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cloud.x - 20, cloud.y + 5, 25, 15, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawDucks() {
+  for (const duck of ducks) {
+    ctx.fillStyle = "orange";
+    ctx.fillRect(duck.x, duck.y, duck.width, duck.height);
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(duck.x + 15, duck.y, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bill
+    ctx.fillStyle = "orange";
+    ctx.fillRect(duck.x + 12, duck.y - 10, 6, 6);
+
+    // Eyes
+    ctx.fillStyle = "black";
+    ctx.beginPath();
+    ctx.arc(duck.x + 10, duck.y - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(duck.x + 20, duck.y - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawUI() {
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText(`Eggs: ${brooks.score}`, 10, 30);
+  ctx.fillText(`Time: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`, 680, 30);
+
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.font = "40px Arial";
+    ctx.fillText("GAME OVER", 300, 300);
+    ctx.font = "30px Arial";
+    ctx.fillText(`Eggs collected: ${brooks.score}`, 280, 350);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawClouds();
+  drawEggs();
+  drawBrooks();
+  drawDucks();
+  drawUI();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
