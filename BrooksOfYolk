@@ -10,7 +10,7 @@
     canvas {
       display: block;
       margin: auto;
-      background: linear-gradient(#87ceeb 40%, #7ec850 60%); /* Adjusted for more grass */
+      background: linear-gradient(#87ceeb 40%, #7ec850 60%);
       border: 2px solid #333;
     }
   </style>
@@ -249,13 +249,21 @@ function drawUI() {
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     ctx.fillStyle = "white";
     ctx.font = "40px Arial";
-    ctx.fillText("GAME OVER", canvas.width / 2, 280);
+    ctx.fillText("GAME OVER", canvas.width / 2, 220);
     ctx.font = "30px Arial";
-    ctx.fillText(`Eggs collected: ${brooks.score}`, canvas.width / 2, 330);
+    ctx.fillText(`Eggs collected: ${brooks.score}`, canvas.width / 2, 270);
+
+    ctx.fillStyle = "purple";
+    ctx.font = "bold 24px Arial";
+    ctx.fillText("And Then He Breathes Fire by BrooksOfYolk", canvas.width / 2, 320);
+    ctx.fillText("OUT NOW on ALL MUSIC PLATFORMS", canvas.width / 2, 355);
+
+    ctx.fillStyle = "white";
     ctx.font = "20px Arial";
-    ctx.fillText("Press R to Restart", canvas.width / 2, 380);
+    ctx.fillText("Press R to Restart", canvas.width / 2, 400);
   }
 }
 
