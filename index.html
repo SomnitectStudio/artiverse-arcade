@@ -13,6 +13,9 @@
     h1 {
       margin-top: 20px;
     }
+    #controls {
+      margin-bottom: 10px;
+    }
     #lives {
       font-size: 24px;
       margin-bottom: 10px;
@@ -54,8 +57,8 @@
       color: #444;
       cursor: default;
     }
-    #restart {
-      margin-top: 20px;
+    button {
+      margin: 10px 5px;
       padding: 10px 20px;
       font-size: 16px;
       background-color: #6a0dad;
@@ -64,31 +67,35 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #restart:hover {
+    button:hover {
       background-color: #8747d5;
+    }
+    #volume-control {
+      margin-left: 10px;
+      vertical-align: middle;
     }
   </style>
 </head>
 <body>
   <h1>Retro Matching Game</h1>
-  <div id="lives">💔💔💔💔💔</div>
+
+  <div id="controls">
+    <div id="lives">💔💔💔💔💔</div>
+    <button id="restart">Restart Game</button>
+    <button id="mute">Mute Music</button>
+    <label for="volume-control">Volume:</label>
+    <input type="range" id="volume-control" min="0" max="100" value="100">
+  </div>
+
   <div id="game-board"></div>
   <div id="message"></div>
-  <button id="restart">Restart Game</button>
 
   <audio id="bg-music" src="T9.mp3" loop></audio>
 
   <script>
     const icons = [
-      '👨‍🦳', // Blonde man
-      '👨‍🦱', // Long brown-haired man
-      '🐱',   // Calico cat
-      '🏠',   // Red shed
-      '👻',   // Ghost
-      '⚙️',   // Gear
-      '💿',   // CD
-      '📱',   // Cell phone
-      '🎸'    // Guitar
+      '👨‍🦳', '👨‍🦱', '🐱', '🏠', '👻',
+      '⚙️', '💿', '📱', '🎸'
     ];
     const totalPairs = icons.length;
 
@@ -103,6 +110,8 @@
     const livesEl = document.getElementById('lives');
     const messageEl = document.getElementById('message');
     const music = document.getElementById("bg-music");
+    const muteBtn = document.getElementById("mute");
+    const volumeSlider = document.getElementById("volume-control");
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -190,10 +199,23 @@
       createBoard();
     }
 
+    function toggleMute() {
+      music.muted = !music.muted;
+      muteBtn.textContent = music.muted ? "Unmute Music" : "Mute Music";
+    }
+
+    function updateVolume() {
+      const volume = volumeSlider.value;
+      music.volume = volume / 100;
+    }
+
     document.getElementById('restart').addEventListener('click', resetGame);
+    muteBtn.addEventListener('click', toggleMute);
+    volumeSlider.addEventListener('input', updateVolume);
 
     updateLives();
     createBoard();
+    updateVolume(); // set default volume at load
   </script>
 </body>
 </html>
