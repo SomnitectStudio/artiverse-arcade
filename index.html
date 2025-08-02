@@ -20,7 +20,6 @@
     }
     #message {
       font-size: 20px;
-      color: #0f0;
       margin-top: 20px;
     }
     #game-board {
@@ -55,6 +54,19 @@
       color: #444;
       cursor: default;
     }
+    #restart {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #6a0dad;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #restart:hover {
+      background-color: #8747d5;
+    }
   </style>
 </head>
 <body>
@@ -62,24 +74,35 @@
   <div id="lives">💔💔💔💔💔</div>
   <div id="game-board"></div>
   <div id="message"></div>
+  <button id="restart">Restart Game</button>
 
   <audio id="bg-music" src="T9.mp3" loop></audio>
 
   <script>
     const icons = [
-      '👨‍🦳', '👨‍🦱', '🐱', '🏠', '👻',
-      '⚙️', '🟠', '🟣', '🎸'
+      '👨‍🦳', // Blonde man
+      '👨‍🦱', // Long brown-haired man
+      '🐱',   // Calico cat
+      '🏠',   // Red shed
+      '👻',   // Ghost
+      '⚙️',   // Gear
+      '💿',   // CD
+      '📱',   // Cell phone
+      '🎸'    // Guitar
     ];
+    const totalPairs = icons.length;
 
-    let cards = [...icons, ...icons];
+    let cards = [];
     let firstCard = null;
     let lock = false;
     let lives = 5;
     let matches = 0;
-    const totalPairs = icons.length;
-
-    const music = document.getElementById("bg-music");
     let musicStarted = false;
+
+    const board = document.getElementById('game-board');
+    const livesEl = document.getElementById('lives');
+    const messageEl = document.getElementById('message');
+    const music = document.getElementById("bg-music");
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -89,19 +112,22 @@
     }
 
     function updateLives() {
-      const livesEl = document.getElementById('lives');
       livesEl.textContent = '💔'.repeat(lives);
     }
 
     function showMessage(text, color = '#0f0') {
-      const msg = document.getElementById('message');
-      msg.textContent = text;
-      msg.style.color = color;
+      messageEl.textContent = text;
+      messageEl.style.color = color;
+    }
+
+    function clearBoard() {
+      board.innerHTML = '';
     }
 
     function createBoard() {
-      const board = document.getElementById('game-board');
+      cards = [...icons, ...icons];
       shuffle(cards);
+      clearBoard();
       cards.forEach(icon => {
         const card = document.createElement('div');
         card.className = 'card';
@@ -140,8 +166,7 @@
           lives--;
           updateLives();
           if (lives === 0) {
-            showMessage("Game Over! Refresh to try again.", "#f00");
-            document.querySelectorAll('.card').forEach(c => c.removeEventListener('click', handleCardClick));
+            showMessage("Game Over! Click Restart to try again.", "#f00");
           }
           setTimeout(() => {
             firstCard.classList.remove('revealed');
@@ -154,6 +179,18 @@
         }
       }
     }
+
+    function resetGame() {
+      lives = 5;
+      matches = 0;
+      firstCard = null;
+      lock = false;
+      updateLives();
+      showMessage('');
+      createBoard();
+    }
+
+    document.getElementById('restart').addEventListener('click', resetGame);
 
     updateLives();
     createBoard();
