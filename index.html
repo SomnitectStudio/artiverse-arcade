@@ -64,14 +64,13 @@
 
   <script>
     const icons = [
-      '👨‍🦳', '👨‍🦱', '🐱', '🏠', '👻',
-      '⚙️', '🟠', '🟣', '🎸'
+      '🎸', '👻', '⚙️', '📱', '💿', '🦆', '👱‍♂️', '👨‍🦱', '🐱'
     ];
 
     let cards = [...icons, ...icons];
     let firstCard = null;
     let lock = false;
-    let lives = 5;
+    let lives = 5; // Changed from 10 to 5
     let matches = 0;
     const totalPairs = icons.length;
 
@@ -126,13 +125,10 @@
           lock = true;
           lives--;
           updateLives();
-
           if (lives === 0) {
             showMessage("Game Over! Refresh to try again.", "#f00");
             document.querySelectorAll('.card').forEach(c => c.removeEventListener('click', handleCardClick));
-            return;
           }
-
           setTimeout(() => {
             firstCard.classList.remove('revealed');
             firstCard.textContent = 'ARTIVERSE RECORDS';
