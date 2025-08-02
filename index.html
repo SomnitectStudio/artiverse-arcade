@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MATCH-IMUS</title>
+  <title>Retro Match Game</title>
   <style>
     body {
       background: #111;
@@ -13,13 +13,16 @@
     h1 {
       margin-top: 20px;
     }
-    #lives {
-      font-size: 18px;
+    #controls {
       margin-bottom: 10px;
+    }
+    #lives {
+      font-size: 24px;
+      margin-bottom: 10px;
+      letter-spacing: 8px;
     }
     #message {
       font-size: 20px;
-      color: #0f0;
       margin-top: 20px;
     }
     #game-board {
@@ -32,7 +35,7 @@
     .card {
       width: 100px;
       height: 100px;
-      background-color: #6a0dad; /* purple */
+      background-color: #6a0dad;
       border: 2px solid #aaa;
       font-size: 12px;
       display: flex;
@@ -54,25 +57,68 @@
       color: #444;
       cursor: default;
     }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #6a0dad;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #8747d5;
+    }
+    #volume-control {
+      margin-left: 10px;
+      vertical-align: middle;
+    }
   </style>
 </head>
 <body>
   <h1>Retro Matching Game</h1>
-  <div id="lives">Lives: 5</div>
+
+  <div id="controls">
+    <div id="lives">💔💔💔💔💔</div>
+    <button id="restart">Restart Game</button>
+    <button id="mute">Mute Music</button>
+    <label for="volume-control">Volume:</label>
+    <input type="range" id="volume-control" min="0" max="100" value="100">
+  </div>
+
   <div id="game-board"></div>
   <div id="message"></div>
 
+  <audio id="bg-music" src="T9.mp3" loop></audio>
+
   <script>
     const icons = [
-      '🎸', '👻', '⚙️', '📱', '💿', '🦆', '👱‍♂️', '👨‍🦱', '🐱'
+      '👨‍🦳', // Blonde man with glasses
+      '👨‍🦱', // Long brown-haired man
+      '🐱',   // Calico cat
+      '🏠',   // Red shed
+      '👻',   // Ghost
+      '⚙️',   // Gear
+      '💿',   // CD
+      '📱',   // Cell phone
+      '🎸'    // Guitar
     ];
+    const totalPairs = icons.length;
 
-    let cards = [...icons, ...icons];
+    let cards = [];
     let firstCard = null;
     let lock = false;
-    let lives = 5; // Changed from 10 to 5
+    let lives = 5;
     let matches = 0;
-    const totalPairs = icons.length;
+    let musicStarted = false;
+
+    const board = document.getElementById('game-board');
+    const livesEl = document.getElementById('lives');
+    const messageEl = document.getElementById('message');
+    const music = document.getElementById("bg-music");
+    const muteBtn = document.getElementById("mute");
+    const volumeSlider = document.getElementById("volume-control");
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -82,24 +128,34 @@
     }
 
     function updateLives() {
-      document.getElementById('lives').textContent = `Lives: ${lives}`;
+      livesEl.textContent = '💔'.repeat(lives);
     }
 
     function showMessage(text, color = '#0f0') {
-      const msg = document.getElementById('message');
-      msg.textContent = text;
-      msg.style.color = color;
+      messageEl.textContent = text;
+      messageEl.style.color = color;
+    }
+
+    function clearBoard() {
+      board.innerHTML = '';
     }
 
     function createBoard() {
-      const board = document.getElementById('game-board');
+      cards = [...icons, ...icons];
       shuffle(cards);
+      clearBoard();
       cards.forEach(icon => {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.icon = icon;
         card.textContent = 'ARTIVERSE RECORDS';
-        card.addEventListener('click', () => handleCardClick(card));
+        card.addEventListener('click', () => {
+          if (!musicStarted) {
+            music.play();
+            musicStarted = true;
+          }
+          handleCardClick(card);
+        });
         board.appendChild(card);
       });
     }
@@ -126,8 +182,7 @@
           lives--;
           updateLives();
           if (lives === 0) {
-            showMessage("Game Over! Refresh to try again.", "#f00");
-            document.querySelectorAll('.card').forEach(c => c.removeEventListener('click', handleCardClick));
+            showMessage("Game Over! Click Restart to try again.", "#f00");
           }
           setTimeout(() => {
             firstCard.classList.remove('revealed');
@@ -141,8 +196,33 @@
       }
     }
 
+    function resetGame() {
+      lives = 5;
+      matches = 0;
+      firstCard = null;
+      lock = false;
+      updateLives();
+      showMessage('');
+      createBoard();
+    }
+
+    function toggleMute() {
+      music.muted = !music.muted;
+      muteBtn.textContent = music.muted ? "Unmute Music" : "Mute Music";
+    }
+
+    function updateVolume() {
+      const volume = volumeSlider.value;
+      music.volume = volume / 100;
+    }
+
+    document.getElementById('restart').addEventListener('click', resetGame);
+    muteBtn.addEventListener('click', toggleMute);
+    volumeSlider.addEventListener('input', updateVolume);
+
     updateLives();
     createBoard();
+    updateVolume(); // Apply initial volume setting
   </script>
 </body>
 </html>
