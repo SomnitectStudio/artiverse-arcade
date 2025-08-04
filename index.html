@@ -1,236 +1,364 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>MATCHIMUS</title>
+  <meta charset="UTF-8" />
+  <title>ANOTHER PLANET</title>
   <style>
-    body {
-      background: #111;
-      color: #fff;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    h1 {
-      margin-top: 20px;
-    }
-    #controls {
-      margin-bottom: 10px;
-    }
-    #lives {
-      font-size: 24px;
-      margin-bottom: 10px;
-      letter-spacing: 8px;
-    }
-    #message {
-      font-size: 20px;
-      margin-top: 20px;
-    }
-    #game-board {
-      display: grid;
-      grid-template-columns: repeat(4, 100px); /* Updated for 4x4 grid */
-      gap: 10px;
-      justify-content: center;
-      margin-top: 10px;
-    }
-    .card {
-      width: 100px;
-      height: 100px;
-      background-color: #6a0dad;
-      border: 2px solid #aaa;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      user-select: none;
-      color: white;
-      font-weight: bold;
-      text-align: center;
-    }
-    .revealed {
-      background-color: #fff;
-      color: #000;
-      font-size: 32px;
-    }
-    .matched {
-      background-color: #222;
-      color: #444;
-      cursor: default;
-    }
-    button {
-      margin: 10px 5px;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    canvas { display: block; margin: 0 auto; background: black; }
+    body { background: black; color: white; text-align: center; font-family: sans-serif; }
+    h1 { margin-top: 10px; }
+    #restartBtn {
+      display: none;
+      margin-top: 15px;
       padding: 10px 20px;
       font-size: 16px;
-      background-color: #6a0dad;
+      background-color: purple;
       color: white;
       border: none;
-      border-radius: 5px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #8747d5;
+    #restartBtn:hover {
+      background-color: #b060f0;
     }
-    #volume-control {
-      margin-left: 10px;
-      vertical-align: middle;
+    #controls {
+      margin-top: 10px;
+    }
+    button.control-btn {
+      margin: 0 5px;
+      padding: 5px 10px;
+      font-size: 14px;
+      background-color: #333;
+      color: white;
+      border: 1px solid #888;
+      cursor: pointer;
+    }
+    button.control-btn:hover {
+      background-color: #555;
     }
   </style>
 </head>
 <body>
-  <h1>MATCHIMUS</h1>
-
+  <h1>🚀 ANOTHER PLANET</h1>
+  <canvas id="game" width="400" height="600"></canvas>
   <div id="controls">
-    <div id="lives">💔💔💔💔💔</div>
-    <button id="restart">Restart Game</button>
-    <button id="mute">Mute Music</button>
-    <label for="volume-control">Volume:</label>
-    <input type="range" id="volume-control" min="0" max="100" value="100">
+    <button class="control-btn" onclick="music.muted = !music.muted">🔇</button>
+    <button class="control-btn" onclick="music.volume = Math.min(1, music.volume + 0.1)">🔊+</button>
+    <button class="control-btn" onclick="music.volume = Math.max(0, music.volume - 0.1)">🔉-</button>
   </div>
-
-  <div id="game-board"></div>
-  <div id="message"></div>
-
-  <audio id="bg-music" src="T9.mp3" loop></audio>
+  <button id="restartBtn">RESTART</button>
+  <audio id="bgm" src="assets/anotherplanet.mp3" autoplay loop></audio>
 
   <script>
-    const icons = [
-      '👨‍🦳', // Blonde man with glasses
-      '👨‍🦱', // Long brown-haired man
-      '🐱',   // Calico cat
-      '🎸',   // Guitar
-      '👻',   // Ghost
-      '⚙️',   // Gear
-      '💿',   // CD
-      '📱'    // Cell phone
-    ];
-    const totalPairs = icons.length;
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const restartBtn = document.getElementById('restartBtn');
+    const music = document.getElementById('bgm');
+    music.volume = 0.5;
 
-    let cards = [];
-    let firstCard = null;
-    let lock = false;
-    let lives = 5;
-    let matches = 0;
-    let musicStarted = false;
+    const normalBackground = 'linear-gradient(to top, #002233, #000011)';
+    const powerUpDurationFrames = 420;
 
-    const board = document.getElementById('game-board');
-    const livesEl = document.getElementById('lives');
-    const messageEl = document.getElementById('message');
-    const music = document.getElementById("bg-music");
-    const muteBtn = document.getElementById("mute");
-    const volumeSlider = document.getElementById("volume-control");
+    let rocket, asteroids, powerUps, keys, score, speed, gameOver, spawnChance;
+    let powerUpTimer = 0;
+    let colorHue = 0;
+    let backgroundReset = true;
+    let flashColorIndex = 0;
+    let starfield = [];
+    let passedFirstAsteroid = false;
 
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
+    const flashColors = ['#f00', '#0f0', '#ff0', '#0ff', '#f0f', '#fff', '#f90'];
 
-    function updateLives() {
-      livesEl.textContent = '💔'.repeat(lives);
-    }
+    function resetGameState() {
+      rocket = {
+        x: 180,
+        y: 500,
+        width: 40,
+        height: 60,
+        draw() {
+          const cx = this.x + this.width / 2;
+          const cy = this.y + this.height / 2;
 
-    function showMessage(text, color = '#0f0') {
-      messageEl.textContent = text;
-      messageEl.style.color = color;
-    }
-
-    function clearBoard() {
-      board.innerHTML = '';
-    }
-
-    function createBoard() {
-      cards = [...icons, ...icons];
-      shuffle(cards);
-      clearBoard();
-      cards.forEach(icon => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.dataset.icon = icon;
-        card.textContent = 'ARTIVERSE RECORDS';
-        card.addEventListener('click', () => {
-          if (!musicStarted) {
-            music.play();
-            musicStarted = true;
+          if (powerUpTimer > 0) {
+            const progress = powerUpTimer / powerUpDurationFrames;
+            const startAngle = Math.PI / 2 - Math.PI * progress;
+            const endAngle = Math.PI / 2 + Math.PI * progress;
+            ctx.strokeStyle = 'rgba(0,200,255,0.5)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 35, startAngle, endAngle);
+            ctx.stroke();
           }
-          handleCardClick(card);
-        });
-        board.appendChild(card);
-      });
+
+          ctx.fillStyle = '#ccc';
+          ctx.beginPath();
+          ctx.moveTo(cx, this.y);
+          ctx.lineTo(this.x + this.width, this.y + this.height - 10);
+          ctx.lineTo(this.x, this.y + this.height - 10);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = '#00bfff';
+          ctx.beginPath();
+          ctx.arc(cx, this.y + 25, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#f33';
+          ctx.fillRect(this.x - 5, this.y + 40, 10, 15);
+          ctx.fillRect(this.x + this.width - 5, this.y + 40, 10, 15);
+
+          if (keys['ArrowUp']) {
+            ctx.fillStyle = 'orange';
+            ctx.beginPath();
+            ctx.moveTo(cx - 5, this.y + this.height);
+            ctx.lineTo(cx + 5, this.y + this.height);
+            ctx.lineTo(cx, this.y + this.height + Math.random() * 20);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          if (keys['ArrowDown']) {
+            ctx.fillStyle = 'yellow';
+            ctx.beginPath();
+            ctx.moveTo(this.x - 5, this.y + 40);
+            ctx.lineTo(this.x - 10, this.y + 35);
+            ctx.lineTo(this.x - 5, this.y + 30 - Math.random() * 10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(this.x + this.width + 5, this.y + 40);
+            ctx.lineTo(this.x + this.width + 10, this.y + 35);
+            ctx.lineTo(this.x + this.width + 5, this.y + 30 - Math.random() * 10);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.fillText('JOMAN', this.x + 4, this.y + this.height - 20);
+        }
+      };
+
+      asteroids = [];
+      powerUps = [];
+      keys = {};
+      score = 0;
+      speed = 2;
+      spawnChance = 0.01;
+      gameOver = false;
+      powerUpTimer = 0;
+      colorHue = 0;
+      backgroundReset = true;
+      flashColorIndex = 0;
+      passedFirstAsteroid = false;
+
+      starfield = Array.from({ length: 100 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 1,
+        speed: Math.random() * 0.5 + 0.2,
+      }));
+
+      canvas.style.background = normalBackground;
+      restartBtn.style.display = 'none';
     }
 
-    function handleCardClick(card) {
-      if (lock || card.classList.contains('matched') || card.classList.contains('revealed')) return;
+    function drawStarfield() {
+      ctx.fillStyle = 'white';
+      for (let star of starfield) {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
 
-      card.classList.add('revealed');
-      card.textContent = card.dataset.icon;
+        // Move star down
+        star.y += star.speed;
 
-      if (!firstCard) {
-        firstCard = card;
-      } else {
-        if (firstCard.dataset.icon === card.dataset.icon) {
-          firstCard.classList.add('matched');
-          card.classList.add('matched');
-          matches++;
-          if (matches === totalPairs) {
-            showMessage(`You Win! Thanks for playing! And be sure to stream "T9" by Ghost Servo and BrooksOfYork`);
-          }
-          firstCard = null;
-        } else {
-          lock = true;
-          lives--;
-          updateLives();
-          if (lives === 0) {
-            showMessage("Game Over! Click Restart to try again.", "#f00");
-          }
-          setTimeout(() => {
-            firstCard.classList.remove('revealed');
-            firstCard.textContent = 'ARTIVERSE RECORDS';
-            card.classList.remove('revealed');
-            card.textContent = 'ARTIVERSE RECORDS';
-            firstCard = null;
-            lock = false;
-          }, 900);
+        // Wrap to top if it goes off screen
+        if (star.y > canvas.height) {
+          star.y = -2;
+          star.x = Math.random() * canvas.width;
         }
       }
     }
 
-    function resetGame() {
-      lives = 5;
-      matches = 0;
-      firstCard = null;
-      lock = false;
-      updateLives();
-      showMessage('');
-      createBoard();
+    function drawBackground() {
+      ctx.fillStyle = powerUpTimer > 0
+        ? `hsl(${(colorHue++ % 360)}, 60%, 10%)`
+        : (() => {
+            const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#000011');
+            g.addColorStop(1, '#002233');
+            return g;
+          })();
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawStarfield();
+
+      ctx.fillStyle = '#444';
+      ctx.fillRect(50, 550, 100, 50);
+      ctx.fillRect(260, 560, 40, 40);
+      ctx.fillRect(320, 540, 30, 60);
+      ctx.fillStyle = '#2299dd';
+      ctx.fillRect(0, 580, 400, 20);
+
+      ctx.beginPath();
+      ctx.arc(200, 50, 30, 0, Math.PI * 2);
+      ctx.fillStyle = '#c173f2';
+      ctx.fill();
+      ctx.strokeStyle = '#d295f5';
+      ctx.beginPath();
+      ctx.ellipse(200, 50, 50, 10, 0.5, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
-    function toggleMute() {
-      music.muted = !music.muted;
-      muteBtn.textContent = music.muted ? "Unmute Music" : "Mute Music";
-    }
-
-    function updateVolume() {
-      const volume = volumeSlider.value;
-      music.volume = volume / 100;
-    }
-
-    document.getElementById('restart').addEventListener('click', resetGame);
-    muteBtn.addEventListener('click', toggleMute);
-    volumeSlider.addEventListener('input', updateVolume);
-
-    // Enable volume control and board
-    updateLives();
-    createBoard();
-    updateVolume();
-
-    // Fallback: allow music start on any tap
-    document.body.addEventListener("click", () => {
-      if (!musicStarted) {
-        music.play();
-        musicStarted = true;
+    function drawAsteroids() {
+      for (let a of asteroids) {
+        ctx.save();
+        ctx.translate(a.x, a.y);
+        if (!a.rotation) a.rotation = Math.random() * Math.PI * 2;
+        if (!a.rotationSpeed) a.rotationSpeed = Math.random() * 0.01;
+        a.rotation += a.rotationSpeed;
+        ctx.rotate(a.rotation);
+        ctx.fillStyle = powerUpTimer > 0
+          ? `hsl(${(score + a.y) % 360}, 100%, 70%)`
+          : '#777';
+        ctx.beginPath();
+        ctx.moveTo(a.r * 0.6, -a.r);
+        ctx.lineTo(a.r, -a.r * 0.2);
+        ctx.lineTo(a.r * 0.8, a.r * 0.8);
+        ctx.lineTo(0, a.r);
+        ctx.lineTo(-a.r * 0.8, a.r * 0.5);
+        ctx.lineTo(-a.r, -a.r * 0.3);
+        ctx.lineTo(-a.r * 0.3, -a.r);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
-    }, { once: true });
+    }
+
+    function drawPowerUps() {
+      for (let p of powerUps) {
+        ctx.fillStyle = flashColors[(score + Math.floor(p.y)) % flashColors.length];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawGameOverScreen() {
+      ctx.fillStyle = 'red';
+      ctx.font = '30px sans-serif';
+      ctx.fillText("GAME OVER", canvas.width / 2 - 90, 280);
+
+      ctx.fillStyle = flashColors[flashColorIndex];
+      ctx.font = '18px sans-serif';
+      const promoText = "ANOTHER PLANET BY JOMAN OUT NOW";
+      const textWidth = ctx.measureText(promoText).width;
+      ctx.fillText(promoText, (canvas.width - textWidth) / 2, 320);
+      flashColorIndex = (flashColorIndex + 1) % flashColors.length;
+
+      ctx.fillStyle = 'white';
+      ctx.font = '20px sans-serif';
+      ctx.fillText(`Final Score: ${score}`, canvas.width / 2 - 70, 360);
+
+      ctx.font = '10px sans-serif';
+      ctx.fillText("game designed by Artiverse Records", canvas.width / 2 - 85, canvas.height - 10);
+    }
+
+    let animationId;
+
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+
+      if (!gameOver) {
+        if (keys['ArrowLeft']) rocket.x -= 5;
+        if (keys['ArrowRight']) rocket.x += 5;
+        if (keys['ArrowUp']) rocket.y -= 5;
+        if (keys['ArrowDown']) rocket.y += 5;
+
+        rocket.x = Math.max(0, Math.min(canvas.width - rocket.width, rocket.x));
+        rocket.y = Math.max(0, Math.min(rocket.y, 500));
+
+        rocket.draw();
+
+        if (score > 300 && score % 200 === 0 && spawnChance < 0.2) spawnChance += 0.002;
+        if (score > 400 && score % 300 === 0 && speed < 6) speed += 0.2;
+
+        if (Math.random() < spawnChance) {
+          asteroids.push({ x: Math.random() * 380, y: -20, r: 15 + Math.random() * 10 });
+        }
+
+        if (Math.random() < 0.002 && powerUpTimer <= 0) {
+          powerUps.push({ x: Math.random() * 370 + 15, y: -20 });
+        }
+
+        for (let a of asteroids) {
+          a.y += speed;
+          if (
+            !gameOver &&
+            powerUpTimer <= 0 &&
+            a.x > rocket.x &&
+            a.x < rocket.x + rocket.width &&
+            a.y + a.r > rocket.y &&
+            a.y - a.r < rocket.y + rocket.height
+          ) {
+            gameOver = true;
+            restartBtn.style.display = 'inline-block';
+          }
+
+          if (!passedFirstAsteroid && a.y > rocket.y + rocket.height) passedFirstAsteroid = true;
+        }
+
+        powerUps = powerUps.filter(p => {
+          p.y += speed;
+          const hit = p.x > rocket.x && p.x < rocket.x + rocket.width && p.y + 12 > rocket.y && p.y - 12 < rocket.y + rocket.height;
+          if (hit) {
+            powerUpTimer = powerUpDurationFrames;
+            backgroundReset = false;
+            return false;
+          }
+          return p.y < canvas.height + 15;
+        });
+
+        asteroids = asteroids.filter(a => a.y < canvas.height + a.r);
+
+        if (powerUpTimer === 1 && !backgroundReset) {
+          canvas.style.background = normalBackground;
+          backgroundReset = true;
+        }
+
+        if (passedFirstAsteroid) score += 1;
+        if (powerUpTimer > 0) powerUpTimer--;
+
+        drawAsteroids();
+        drawPowerUps();
+
+        ctx.fillStyle = 'white';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Score: ${score}`, 10, 20);
+      } else {
+        drawAsteroids();
+        drawPowerUps();
+        rocket.draw();
+        drawGameOverScreen();
+      }
+
+      animationId = requestAnimationFrame(update);
+    }
+
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    restartBtn.onclick = () => {
+      cancelAnimationFrame(animationId);
+      resetGameState();
+      animationId = requestAnimationFrame(update);
+    };
+
+    resetGameState();
+    animationId = requestAnimationFrame(update);
   </script>
 </body>
 </html>
