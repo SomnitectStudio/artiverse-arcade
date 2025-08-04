@@ -359,6 +359,12 @@
     };
 
     resetGameState();
+
+document.addEventListener('keydown', () => {
+  if (music.paused) {
+    music.play().catch(err => console.warn('Autoplay blocked:', err));
+  }
+}, { once: true });
     animationId = requestAnimationFrame(update);
   </script>
 </body>
